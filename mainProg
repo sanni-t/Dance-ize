@@ -1,0 +1,93 @@
+import ddf.minim.*;            //Minim: Audio control library
+import ddf.minim.analysis.*;   //For computing fft
+
+import SimpleOpenNI.*;
+AudioVisualisation audVis;
+SimpleOpenNI kinect;
+Minim minim;
+AudioPlayer myPlayer;
+FFT fft;
+
+int kinIndex, dispIndex;
+int index;
+PImage img;
+PImage newImg;
+
+void setup() {
+  size(640, 480);
+  audVis = new AudioVisualisation();    //class that performs audio visuals
+  newImg = new PImage(width, height);    //the image that's shown finally
+  img = new PImage(width, height);        //background image
+  kinect = new SimpleOpenNI(this);
+  minim = new Minim(this);
+
+  myPlayer = minim.loadFile("mySong.mp3", 512);
+  myPlayer.play();
+  kinect.enableDepth();
+
+  fft = new FFT(myPlayer.bufferSize(), myPlayer.sampleRate());
+  
+  //-------------Start drawing background----------------
+  background(0);
+
+  for (int i=0; i<1000; i++) {
+
+    fill(229, 107, 7, random(10, 255));
+    ellipse(random(0, width), random(0, height), 4, 4);
+    //pushMatrix();
+    //translate(random(150,600), random(20,480));//, random(-50,50));
+    // box(1);
+    //popMatrix();
+  }
+  
+  
+  loadPixels();
+
+  for (int x=0; x<width; x++) {
+    for (int y=0; y<height; y++) {
+      index=x+y*width;
+      img.pixels[index]= pixels[index];
+    }
+  }
+  img.updatePixels();
+//-------------End drawing background, save it in img----------------
+}
+
+
+void draw() {
+  background(img); //draw background
+  audVis.draw();    //draw the visualisation o ntop of it
+  kinect.update();
+
+  loadPixels();    //grab the screen pixels
+  updatePixels();
+  
+  //-------------Show only objects in the predefined depth range------
+  
+  int[] depthVal= kinect.depthMap();
+  for (int x=0; x<width; x++) {
+    for (int y=0;y<height;y++) {
+      kinIndex= x+ (y*width);
+      dispIndex= width-x-1+ (y*width);
+
+      if (depthVal[kinIndex]>600 && depthVal[kinIndex]<2000) {
+        // img.pixels[dispIndex] = color(255);
+        newImg.pixels[dispIndex] = pixels[dispIndex];
+      }
+      else {
+        
+        newImg.pixels[dispIndex] = color(0);
+      }
+    }
+  }
+
+  newImg.updatePixels();
+  image(newImg, 0, 0);
+}
+
+void stop() {
+  myPlayer.close();
+  minim.stop();
+  super.stop();
+}
+
